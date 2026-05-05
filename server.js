@@ -13,7 +13,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// (optionnel mais recommandé pour ton frontend)
+// Sert les fichiers statiques (frontend)
 app.use(express.static("public"));
 
 // =======================
@@ -25,7 +25,7 @@ mongoose
   .catch((err) => console.error("❌ MongoDB erreur :", err));
 
 // =======================
-// MODEL (simple intégré)
+// MODEL
 // =======================
 const LinkSchema = new mongoose.Schema({
   originalUrl: String,
@@ -38,7 +38,7 @@ const Link = mongoose.model("Link", LinkSchema);
 // HOME PAGE
 // =======================
 app.get("/", (req, res) => {
-  res.send("🚀 URL Shortener API fonctionne !");
+  res.sendFile(__dirname + "/public/index.html");
 });
 
 // =======================
@@ -100,6 +100,6 @@ app.get("/:code", async (req, res) => {
 // =======================
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Serveur lancé sur ${PORT}`);
 });
