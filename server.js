@@ -38,7 +38,7 @@ const Link = mongoose.model("Link", LinkSchema);
 // HOME PAGE
 // =======================
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/index.html");
+  res.send("OK");
 });
 
 // =======================
