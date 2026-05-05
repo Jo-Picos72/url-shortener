@@ -3,26 +3,103 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const path = require("path");
+const { nanoid } = require("nanoid");
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// =======================
+// MIDDLEWARE
+// =======================
 app.use(express.json());
+app.use(cors());
+
+// (optionnel mais recommandé pour ton frontend)
 app.use(express.static("public"));
 
-// Routes
-const linkRoutes = require("./routes/linkRoutes");
-app.use("/", linkRoutes);
-
-// Connexion MongoDB
+// =======================
+// MONGODB CONNECTION
+// =======================
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Base de données connectée"))
-  .catch((err) => console.log("❌ Erreur DB :", err));
+  .then(() => console.log("✅ MongoDB connecté"))
+  .catch((err) => console.error("❌ MongoDB erreur :", err));
 
-// Lancer serveur
-app.listen(3000, () => {
-  console.log("🚀 Serveur lancé sur http://localhost:3000");
+// =======================
+// MODEL (simple intégré)
+// =======================
+const LinkSchema = new mongoose.Schema({
+  originalUrl: String,
+  shortCode: String,
+});
+
+const Link = mongoose.model("Link", LinkSchema);
+
+// =======================
+// HOME PAGE
+// =======================
+app.get("/", (req, res) => {
+  res.send("🚀 URL Shortener API fonctionne !");
+});
+
+// =======================
+// CREATE SHORT LINK
+// =======================
+app.post("/shorten", async (req, res) => {
+  try {
+    const { originalUrl, customCode } = req.body;
+
+    if (!originalUrl) {
+      return res.status(400).json({ error: "URL manquante" });
+    }
+
+    const code = customCode || nanoid(6);
+
+    const exists = await Link.findOne({ shortCode: code });
+    if (exists) {
+      return res.status(400).json({ error: "Code déjà utilisé" });
+    }
+
+    const newLink = new Link({
+      originalUrl,
+      shortCode: code,
+    });
+
+    await newLink.save();
+
+    res.json({
+      shortUrl: `${req.protocol}://${req.get("host")}/${code}`,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// =======================
+// REDIRECT LINK
+// =======================
+app.get("/:code", async (req, res) => {
+  try {
+    const link = await Link.findOne({ shortCode: req.params.code });
+
+    if (!link) {
+      return res.status(404).send("Lien introuvable");
+    }
+
+    res.redirect(link.originalUrl);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erreur serveur");
+  }
+});
+
+// =======================
+// START SERVER
+// =======================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur lancé sur ${PORT}`);
 });
